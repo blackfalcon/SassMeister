@@ -13,7 +13,7 @@ task :server do
 
   puts "Starting SassMeister in #{environment.upcase} mode..."
 
-  exec "bundle exec rackup config.ru -p 5000 -E #{environment}"
+  exec "bundle exec rackup config.ru -p 3001 -E #{environment}"
 
   task environment.to_sym do ; end
 end
