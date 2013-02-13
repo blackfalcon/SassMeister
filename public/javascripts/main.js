@@ -64,7 +64,29 @@ http://github.com/bgrins/bindWithDelay
 
   $('select').on('change', function() {
     _gaq.push(['_trackEvent', 'Form', 'Control', this.value]);
-    $("#sass-form").submit();
+
+    if($(this).attr("name").match(/syntax/)) {
+      var inputs = {
+        sass: sass.getValue(),
+        syntax: $('select[name="syntax"]').val(),
+        original_syntax: $('select[name="syntax"]').data('orignal'),
+        plugin: $('select[name="plugin"]').val(),
+        output: $('select[name="output"]').val()
+      }
+
+      $.post('/sass-convert', inputs,
+        function( data ) {
+          sass.setValue(data, -1);
+          // 
+          // inputs.sass = data;
+          // 
+          // localStorage.setItem('inputs', JSON.stringify(inputs));
+        }
+      );
+    }
+    else {
+      $("#sass-form").submit();
+    }
   });
 
   /* attach a submit handler to the form */
@@ -84,6 +106,12 @@ http://github.com/bgrins/bindWithDelay
     $.post($(this).attr('action'), inputs,
       function( data ) {
         css.setValue(data,-1);
+
+        $('select[name="syntax"]').data('orignal', inputs.syntax);
+
+        if(data.sass.length > 0) {
+          sass.setValue(data.sass,-1);
+        }
       }
     );
 
@@ -100,7 +128,7 @@ http://github.com/bgrins/bindWithDelay
   if( storedInputs !== null) {
     sass.setValue(storedInputs.sass);
     sass.clearSelection();
-    $('select[name="syntax"]').val(storedInputs.syntax);
+    $('select[name="syntax"]').val(storedInputs.syntax).data('orignal', storedInputs.syntax);
     $('select[name="plugin"]').val(storedInputs.plugin);
     $('select[name="output"]').val(storedInputs.output);
     $("#sass-form").submit();
@@ -167,17 +195,27 @@ http://github.com/bgrins/bindWithDelay
       output: $('select[name="output"]').val()
     }
 
-    var action = '', confirmationText = 'Your Gist is ready.';
+    var action = '', confirmationText = 'is ready';
 
     if($('#gist-it').data('gist-save') == 'edit') {
       action = '/' + $('#gist-it').data('gist-save');
-      confirmationText = 'Your Gist has been updated.';
+      confirmationText = 'has been updated';
     }
 
     ///* Send the data using post and put the results in a div */
     $.post('/gist' + action, inputs,
       function( data ) {
-        buildModal(confirmationText + ' <a href="' + data + '" target="_blank">See it here.<a>');
+        buildModal('<a href="https://gist.github.com/' + data + '" target="_blank">Your Gist</a> ' + confirmationText + ', and here\'s the <a href="/gist/' + data + '">SassMeister live view.</a> ');
+
+        var myNewState = {
+        	data: { },
+        	title: 'SassMeister | The Sass Playground!',
+        	url: '/gist/' + data
+        };
+        history.pushState(myNewState.data, myNewState.title, myNewState.url);
+        window.onpopstate = function(event){
+        	console.log(event.state); // will be our state data, so myNewState.data
+        }
 
         $('#gist-it').data('gist-save', 'edit');
       }
@@ -194,5 +232,15 @@ http://github.com/bgrins/bindWithDelay
     css.setValue('');
 
     $.post('/reset');
+
+    var myNewState = {
+    	data: { },
+    	title: 'SassMeister | The Sass Playground!',
+    	url: '/'
+    };
+    history.pushState(myNewState.data, myNewState.title, myNewState.url);
+    window.onpopstate = function(event){
+    	console.log(event.state); // will be our state data, so myNewState.data
+    }
   });
 })(jQuery);
